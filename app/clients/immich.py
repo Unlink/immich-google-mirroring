@@ -24,14 +24,14 @@ class ImmichClient:
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(
-                    f"{self.base_url}/api/server-info/ping",
+                    f"{self.base_url}/api/server/ping",
                     headers=self.headers
                 )
                 response.raise_for_status()
                 
                 # Try to get user info
                 user_response = await client.get(
-                    f"{self.base_url}/api/user/me",
+                    f"{self.base_url}/api/users/me",
                     headers=self.headers
                 )
                 user_response.raise_for_status()
@@ -60,7 +60,7 @@ class ImmichClient:
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(
-                    f"{self.base_url}/api/album",
+                    f"{self.base_url}/api/albums",
                     headers=self.headers
                 )
                 response.raise_for_status()
@@ -85,7 +85,7 @@ class ImmichClient:
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(
-                    f"{self.base_url}/api/album/{album_id}",
+                    f"{self.base_url}/api/albums/{album_id}",
                     headers=self.headers
                 )
                 response.raise_for_status()
@@ -117,7 +117,7 @@ class ImmichClient:
             try:
                 async with client.stream(
                     "GET",
-                    f"{self.base_url}/api/asset/file/{asset_id}",
+                    f"{self.base_url}/api/assets/{asset_id}/original",
                     headers=self.headers
                 ) as response:
                     response.raise_for_status()
@@ -132,7 +132,7 @@ class ImmichClient:
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(
-                    f"{self.base_url}/api/asset/assetById/{asset_id}",
+                    f"{self.base_url}/api/assets/{asset_id}",
                     headers=self.headers
                 )
                 response.raise_for_status()
