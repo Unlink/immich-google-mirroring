@@ -60,7 +60,6 @@ class GoogleOAuthHelper:
     async def exchange_code(self, code: str) -> Dict[str, str]:
         """Exchange authorization code for tokens"""
         import warnings
-        from oauthlib.oauth2.rfc6749.parameters import OAuth2Error
         
         client_config = {
             "web": {
