@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 # Google OAuth scopes for Photos
 SCOPES = [
     'https://www.googleapis.com/auth/photoslibrary.appendonly',
-    'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata'
+    'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
 ]
 
 
@@ -110,8 +112,14 @@ class GooglePhotosClient:
     def _refresh_token_if_needed(self):
         """Refresh access token if expired"""
         if not self.credentials.valid:
-            request = Request()
-            self.credentials.refresh(request)
+            if not self.credentials.token:
+                # Force refresh if no token exists
+                request = Request()
+                self.credentials.refresh(request)
+            elif self.credentials.expired:
+                # Refresh if token is expired
+                request = Request()
+                self.credentials.refresh(request)
     
     def get_access_token(self) -> str:
         """Get valid access token"""
