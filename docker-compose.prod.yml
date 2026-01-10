@@ -1,0 +1,85 @@
+version: '3.8'
+
+# Production deployment with Traefik reverse proxy
+# This is an example - adjust to your needs
+
+services:
+  # Traefik reverse proxy with Let's Encrypt
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=your-email@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.example.com`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  # Immich Google Photos Sync
+  immich-gphotos-sync:
+    build: .
+    container_name: immich-gphotos-sync
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    environment:
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+      - BASE_URL=https://sync.example.com
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - DATABASE_PATH=/data/app.db
+      - LOG_PATH=/data/logs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sync.rule=Host(`sync.example.com`)"
+      - "traefik.http.routers.sync.entrypoints=websecure"
+      - "traefik.http.routers.sync.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sync.loadbalancer.server.port=8080"
+      # Optional: Basic Auth
+      # - "traefik.http.middlewares.sync-auth.basicauth.users=user:$$apr1$$password$$hash"
+      # - "traefik.http.routers.sync.middlewares=sync-auth"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Optional: Watchtower for automatic updates
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=86400  # Check daily
+    command: immich-gphotos-sync
+
+volumes:
+  letsencrypt:

@@ -1,0 +1,38 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2026-01-10
+
+### Added
+- Initial release
+- FastAPI-based web application
+- Immich API client integration
+- Google Photos API integration with OAuth2
+- SQLite database for configuration and sync tracking
+- Encrypted storage for API keys and tokens
+- Web UI with dashboard, settings, and sync control
+- Background scheduler for automatic sync
+- Deduplication based on fingerprint (checksum/timestamp)
+- Sync history and logging
+- Docker containerization
+- Comprehensive documentation
+
+### Features
+- Album selection from Immich
+- Manual and scheduled sync
+- Real-time sync status
+- Log viewer
+- OAuth2 web flow for Google Photos
+- Automatic album creation in Google Photos
+- Streaming uploads to minimize memory usage
+- Detailed sync statistics
+
+### Security
+- Fernet encryption for sensitive data
+- OAuth2 state parameter for CSRF protection
+- Secure token storage
+- No sensitive data in logs
