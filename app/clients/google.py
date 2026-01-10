@@ -51,13 +51,17 @@ class GoogleOAuthHelper:
         auth_url, state = flow.authorization_url(
             access_type='offline',
             prompt='consent',
-            state=state
+            state=state,
+            include_granted_scopes='false'
         )
         
         return auth_url, state
     
     async def exchange_code(self, code: str) -> Dict[str, str]:
         """Exchange authorization code for tokens"""
+        import warnings
+        from oauthlib.oauth2.rfc6749.parameters import OAuth2Error
+        
         client_config = {
             "web": {
                 "client_id": self.client_id,
@@ -74,7 +78,10 @@ class GoogleOAuthHelper:
             redirect_uri=self.redirect_uri
         )
         
-        flow.fetch_token(code=code)
+        # Suppress scope mismatch warnings (Google may add openid or reorder scopes)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flow.fetch_token(code=code)
         
         credentials = flow.credentials
         
