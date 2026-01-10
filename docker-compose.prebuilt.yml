@@ -1,18 +1,21 @@
 version: '3.8'
 
+# Simple docker-compose for using pre-built images
+# No build required - just pull and run!
+
 services:
   immich-gphotos-sync:
-    # Use pre-built image (recommended):
-    # image: ghcr.io/unlink/immich-google-sync:latest
-    
-    # Or build from source:
-    build: .
+    image: ghcr.io/unlink/immich-google-sync:latest
     
     container_name: immich-gphotos-sync
+    pull_policy: always  # Always pull latest image
+    
     ports:
       - "8080:8080"
+    
     volumes:
       - ./data:/data
+    
     environment:
       - APP_SECRET_KEY=${APP_SECRET_KEY:-changeme-generate-random-key}
       - BASE_URL=${BASE_URL:-http://localhost:8080}
@@ -20,4 +23,12 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - DATABASE_PATH=/data/app.db
       - LOG_PATH=/data/logs
+    
     restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

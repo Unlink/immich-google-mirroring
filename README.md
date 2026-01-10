@@ -6,6 +6,7 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688.svg)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![Docker Build](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml)
 
 ## 📚 Documentation
 
@@ -14,6 +15,7 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 - **[Architecture](ARCHITECTURE.md)** - System design and data flow
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Changelog](CHANGELOG.md)** - Version history
+- **[GitHub Actions](.github/WORKFLOWS.md)** - CI/CD and Docker publishing
 
 ## Features
 
@@ -48,9 +50,30 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 
 ### Installation
 
+#### Using Pre-built Docker Image (Recommended)
+
+```bash
+# Pull from GitHub Container Registry
+docker pull ghcr.io/unlink/immich-google-sync:latest
+
+# Run with docker-compose
+wget https://raw.githubusercontent.com/Unlink/immich-google-mirroring/main/docker-compose.yml
+# Edit docker-compose.yml to use pre-built image:
+# image: ghcr.io/unlink/immich-google-sync:latest
+
+# Create .env file
+cp .env.example .env
+# Edit .env with your settings
+
+# Start
+docker-compose up -d
+```
+
+#### Building from Source
+
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/Unlink/immich-google-mirroring.git
 cd immich-google-mirroring
 ```
 
