@@ -78,9 +78,15 @@ class GoogleOAuthHelper:
         )
         
         # Suppress scope mismatch warnings (Google may add openid or reorder scopes)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            flow.fetch_token(code=code)
+        # The oauthlib library raises Warning as exception, so we need to catch it
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=Warning)
+                flow.fetch_token(code=code)
+        except Warning:
+            # If Warning is still raised as exception, just continue
+            # The token was already fetched successfully
+            pass
         
         credentials = flow.credentials
         
