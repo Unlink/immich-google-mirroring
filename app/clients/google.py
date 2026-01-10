@@ -59,7 +59,9 @@ class GoogleOAuthHelper:
     
     async def exchange_code(self, code: str) -> Dict[str, str]:
         """Exchange authorization code for tokens"""
-        import warnings
+        # Set oauthlib to be more relaxed about scope validation
+        # Google may add 'openid' scope and reorder scopes, which is normal
+        os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
         
         client_config = {
             "web": {
@@ -77,16 +79,7 @@ class GoogleOAuthHelper:
             redirect_uri=self.redirect_uri
         )
         
-        # Suppress scope mismatch warnings (Google may add openid or reorder scopes)
-        # The oauthlib library raises Warning as exception, so we need to catch it
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=Warning)
-                flow.fetch_token(code=code)
-        except Warning:
-            # If Warning is still raised as exception, just continue
-            # The token was already fetched successfully
-            pass
+        flow.fetch_token(code=code)
         
         credentials = flow.credentials
         
