@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Select Immich Album</h2>
+    
+    {% if not config.immich_url %}
+        <div class="alert alert-warning">
+            Please configure Immich in <a href="/settings">Settings</a> first.
+        </div>
+    {% else %}
+        <div id="albums-list">
+            <div class="loading">Loading albums...</div>
+        </div>
+        
+        {% if config.immich_album_name %}
+        <div class="alert alert-info" style="margin-top: 1rem;">
+            Currently selected: <strong>{{ config.immich_album_name }}</strong> ({{ config.immich_album_id }})
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<script>
+async function loadAlbums() {
+    const listDiv = document.getElementById('albums-list');
+    
+    try {
+        const response = await fetch('/api/immich/albums');
+        const data = await response.json();
+        
+        if (!data.albums || data.albums.length === 0) {
+            listDiv.innerHTML = '<div class="alert alert-info">No albums found in Immich.</div>';
+            return;
+        }
+        
+        let html = '<table><thead><tr><th>Album Name</th><th>Assets</th><th>Action</th></tr></thead><tbody>';
+        
+        for (const album of data.albums) {
+            html += `
+                <tr>
+                    <td><strong>${album.name}</strong></td>
+                    <td>${album.assetCount} items</td>
+                    <td>
+                        <button class="btn" onclick="selectAlbum('${album.id}', '${album.name.replace(/'/g, "\\'")}')">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        html += '</tbody></table>';
+        listDiv.innerHTML = html;
+        
+    } catch (error) {
+        listDiv.innerHTML = `<div class="alert alert-error">Failed to load albums: ${error.message}</div>`;
+    }
+}
+
+async function selectAlbum(albumId, albumName) {
+    try {
+        const response = await fetch('/api/config/album', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                album_id: albumId,
+                album_name: albumName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Album "${albumName}" selected!`);
+            window.location.href = '/google';
+        } else {
+            alert('Failed to select album');
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// Load albums on page load
+if (document.getElementById('albums-list')) {
+    loadAlbums();
+}
+</script>
+{% endblock %}

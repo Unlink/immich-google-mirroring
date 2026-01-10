@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  immich-gphotos-sync:
+    build: .
+    container_name: immich-gphotos-sync
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - APP_SECRET_KEY=${APP_SECRET_KEY:-changeme-generate-random-key}
+      - BASE_URL=${BASE_URL:-http://localhost:8080}
+      - DATABASE_PATH=/data/app.db
+      - LOG_PATH=/data/logs
+    restart: unless-stopped

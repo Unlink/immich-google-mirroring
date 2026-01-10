@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Immich Configuration</h2>
+    
+    <form id="immich-form">
+        <div class="form-group">
+            <label>Immich Base URL</label>
+            <input type="url" id="immich_url" name="immich_url" 
+                   value="{{ config.immich_url or '' }}" 
+                   placeholder="https://immich.example.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Immich API Key</label>
+            <input type="password" id="immich_api_key" name="immich_api_key" 
+                   placeholder="Enter your API key" required>
+            <small style="color: #6b7280;">Create an API key in Immich → Account Settings → API Keys</small>
+        </div>
+        
+        <button type="button" class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+        <button type="submit" class="btn">Save Configuration</button>
+    </form>
+    
+    <div id="test-result" style="margin-top: 1rem;"></div>
+</div>
+
+<div class="card">
+    <h2>Google OAuth Configuration</h2>
+    <p>To use Google Photos, you need to set up OAuth credentials:</p>
+    <ol style="margin-left: 1.5rem; margin-top: 1rem;">
+        <li>Create a project in <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+        <li>Enable Google Photos Library API</li>
+        <li>Create OAuth 2.0 credentials (Web application)</li>
+        <li>Add redirect URI: <code>{{ request.url.scheme }}://{{ request.url.netloc }}/auth/google/callback</code></li>
+        <li>Set environment variables: <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code></li>
+    </ol>
+</div>
+
+<script>
+async function testConnection() {
+    const url = document.getElementById('immich_url').value;
+    const apiKey = document.getElementById('immich_api_key').value;
+    const resultDiv = document.getElementById('test-result');
+    
+    if (!url || !apiKey) {
+        resultDiv.innerHTML = '<div class="alert alert-error">Please fill in all fields</div>';
+        return;
+    }
+    
+    resultDiv.innerHTML = '<div class="loading">Testing connection...</div>';
+    
+    try {
+        const response = await fetch('/api/config/immich/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                immich_url: url,
+                immich_api_key: apiKey
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.innerHTML = `<div class="alert alert-success">✓ Connected successfully! User: ${data.user}</div>`;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-error">✗ Connection failed: ${data.error}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-error">✗ Error: ${error.message}</div>`;
+    }
+}
+
+document.getElementById('immich-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const url = document.getElementById('immich_url').value;
+    const apiKey = document.getElementById('immich_api_key').value;
+    const resultDiv = document.getElementById('test-result');
+    
+    try {
+        const response = await fetch('/api/config/immich', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                immich_url: url,
+                immich_api_key: apiKey
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success">✓ Configuration saved!</div>';
+            setTimeout(() => {
+                window.location.href = '/albums';
+            }, 1500);
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-error">✗ Failed to save configuration</div>';
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-error">✗ Error: ${error.message}</div>`;
+    }
+});
+</script>
+{% endblock %}

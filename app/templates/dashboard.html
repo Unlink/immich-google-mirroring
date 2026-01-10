@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="stats">
+    <div class="stat-card">
+        <h3>Immich Status</h3>
+        <p>
+            {% if config.immich_url %}
+                <span class="status-badge status-success">✓ Connected</span>
+            {% else %}
+                <span class="status-badge status-warning">Not Configured</span>
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Google Photos</h3>
+        <p>
+            {% if config.google_refresh_token_enc %}
+                <span class="status-badge status-success">✓ Authenticated</span>
+            {% else %}
+                <span class="status-badge status-warning">Not Connected</span>
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Album Selected</h3>
+        <p>
+            {% if config.immich_album_name %}
+                {{ config.immich_album_name[:20] }}{% if config.immich_album_name|length > 20 %}...{% endif %}
+            {% else %}
+                <span class="status-badge status-warning">None</span>
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Auto Sync</h3>
+        <p>
+            {% if config.sync_enabled %}
+                <span class="status-badge status-success">✓ Enabled</span>
+            {% else %}
+                <span class="status-badge status-info">Disabled</span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Setup</h2>
+    
+    {% if not config.immich_url %}
+        <div class="alert alert-info">
+            <strong>Step 1:</strong> Configure Immich connection in <a href="/settings">Settings</a>
+        </div>
+    {% elif not config.immich_album_id %}
+        <div class="alert alert-info">
+            <strong>Step 2:</strong> Select an album to sync in <a href="/albums">Albums</a>
+        </div>
+    {% elif not config.google_refresh_token_enc %}
+        <div class="alert alert-info">
+            <strong>Step 3:</strong> Connect Google Photos in <a href="/google">Google Auth</a>
+        </div>
+    {% else %}
+        <div class="alert alert-success">
+            <strong>✓ Ready!</strong> All setup complete. Go to <a href="/sync">Sync</a> to start synchronization.
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Sync Statistics</h2>
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total Items</h3>
+            <p>{{ total_items }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Synced Items</h3>
+            <p>{{ synced_items }}</p>
+        </div>
+        {% if last_run %}
+        <div class="stat-card">
+            <h3>Last Run</h3>
+            <p>
+                <span class="status-badge 
+                    {% if last_run.status.value == 'OK' %}status-success
+                    {% elif last_run.status.value == 'RUNNING' %}status-info
+                    {% else %}status-error{% endif %}">
+                    {{ last_run.status.value }}
+                </span>
+            </p>
+        </div>
+        <div class="stat-card">
+            <h3>Last Run Stats</h3>
+            <p style="font-size: 1rem;">
+                ↑ {{ last_run.uploaded }} uploaded<br>
+                → {{ last_run.skipped }} skipped<br>
+                ✗ {{ last_run.failed }} failed
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if last_run and last_run.log_excerpt %}
+<div class="card">
+    <h2>Recent Logs</h2>
+    <div class="log-viewer">{{ last_run.log_excerpt }}</div>
+</div>
+{% endif %}
+{% endblock %}

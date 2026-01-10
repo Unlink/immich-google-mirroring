@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Google Photos Authentication</h2>
+    
+    <div id="auth-status">
+        <div class="loading">Checking authentication status...</div>
+    </div>
+    
+    <div id="auth-actions" style="margin-top: 1rem;"></div>
+</div>
+
+<div class="card">
+    <h2>Google Photos Album</h2>
+    
+    {% if config.google_album_name %}
+        <p>Google Photos album: <strong>{{ config.google_album_name }}</strong></p>
+        <p style="color: #6b7280; margin-top: 0.5rem;">Album ID: {{ config.google_album_id }}</p>
+    {% else %}
+        <p>No Google Photos album created yet. It will be created automatically during the first sync.</p>
+    {% endif %}
+</div>
+
+<script>
+async function checkAuthStatus() {
+    const statusDiv = document.getElementById('auth-status');
+    const actionsDiv = document.getElementById('auth-actions');
+    
+    try {
+        const response = await fetch('/auth/google/status');
+        const data = await response.json();
+        
+        if (data.authenticated) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-success">
+                    ✓ Connected to Google Photos<br>
+                    <strong>Account:</strong> ${data.email || data.name || 'Unknown'}
+                </div>
+            `;
+            
+            actionsDiv.innerHTML = `
+                <button class="btn btn-danger" onclick="disconnect()">Disconnect Google Photos</button>
+                <a href="/sync" class="btn" style="margin-left: 0.5rem;">Continue to Sync →</a>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    Not connected to Google Photos yet.
+                    ${data.error ? '<br>Error: ' + data.error : ''}
+                </div>
+            `;
+            
+            actionsDiv.innerHTML = `
+                <a href="/auth/google/start" class="btn">Connect Google Photos</a>
+            `;
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `
+            <div class="alert alert-error">
+                Failed to check authentication status: ${error.message}
+            </div>
+        `;
+    }
+}
+
+async function disconnect() {
+    if (!confirm('Are you sure you want to disconnect Google Photos?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/auth/google/disconnect', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Disconnected from Google Photos');
+            window.location.reload();
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// Check status on page load
+checkAuthStatus();
+
+// Check for auth success in URL
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('auth_success') === '1') {
+    setTimeout(checkAuthStatus, 1000);
+}
+</script>
+{% endblock %}
