@@ -18,6 +18,21 @@ from app.utils.encryption import encryption
 
 logger = logging.getLogger(__name__)
 
+# In-memory cancel flags per run. Routes can request cancellation
+# and the running engine instance will observe this event.
+cancel_events: Dict[int, asyncio.Event] = {}
+
+def request_cancel(run_id: int) -> None:
+    """Signal cancellation for a specific sync run."""
+    evt = cancel_events.setdefault(run_id, asyncio.Event())
+    evt.set()
+
+def clear_cancel(run_id: int) -> None:
+    """Clear and remove cancellation signal for a run (cleanup)."""
+    evt = cancel_events.pop(run_id, None)
+    if evt:
+        evt.clear()
+
 
 class SyncEngine:
     """Engine for synchronizing Immich albums to Google Photos"""
@@ -30,6 +45,8 @@ class SyncEngine:
         self.immich_client: Optional[ImmichClient] = None
         self.google_client: Optional[GooglePhotosClient] = None
         self.log_messages = []
+        # Cancellation event associated with this run
+        self.cancel_event = cancel_events.setdefault(run_id, asyncio.Event())
     
     def log(self, message: str, level: str = "INFO"):
         """Log a message"""
@@ -214,12 +231,26 @@ class SyncEngine:
     async def run_sync(self) -> bool:
         """Execute the sync process"""
         try:
+            # Initialize first to ensure self.run is loaded
+            if not await self.initialize():
+                # If run couldn't be loaded or initialization failed, guard against None
+                if self.run:
+                    self.run.status = RunStatus.FAILED
+                    self.run.finished_at = datetime.utcnow()
+                    self.run.log_excerpt = "\n".join(self.log_messages[-50:])
+                    await self.db.commit()
+                return False
+
+            # Mark as running only after successful initialization
             self.run.status = RunStatus.RUNNING
             await self.db.commit()
             
-            # Initialize
-            if not await self.initialize():
-                self.run.status = RunStatus.FAILED
+            # Early cancellation check
+            if self.cancel_event.is_set():
+                self.log("Cancellation requested before start")
+                self.run.status = RunStatus.CANCELLED
+                self.run.finished_at = datetime.utcnow()
+                self.run.log_excerpt = "\n".join(self.log_messages[-50:])
                 await self.db.commit()
                 return False
             
@@ -241,6 +272,14 @@ class SyncEngine:
             
             # Sync each asset
             for i, asset in enumerate(assets, 1):
+                # Check for cancel request on each iteration
+                if self.cancel_event.is_set():
+                    self.log("Cancellation requested; stopping sync")
+                    self.run.status = RunStatus.CANCELLED
+                    self.run.finished_at = datetime.utcnow()
+                    self.run.log_excerpt = "\n".join(self.log_messages[-50:])
+                    await self.db.commit()
+                    return False
                 self.log(f"Processing asset {i}/{len(assets)}: {asset['originalFileName']}")
                 await self.sync_asset(asset)
                 
@@ -259,11 +298,15 @@ class SyncEngine:
             
         except Exception as e:
             self.log(f"Sync failed: {e}", "ERROR")
-            self.run.status = RunStatus.FAILED
-            self.run.finished_at = datetime.utcnow()
-            self.run.log_excerpt = "\n".join(self.log_messages[-50:])
-            await self.db.commit()
+            if self.run:
+                self.run.status = RunStatus.FAILED
+                self.run.finished_at = datetime.utcnow()
+                self.run.log_excerpt = "\n".join(self.log_messages[-50:])
+                await self.db.commit()
             return False
+        finally:
+            # Cleanup cancel flag for this run
+            clear_cancel(self.run_id)
 
 
 async def create_and_run_sync(db: AsyncSession) -> int:

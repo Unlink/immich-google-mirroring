@@ -8,7 +8,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import SyncRun, SyncItem, RunStatus
-from app.sync.engine import create_and_run_sync
+from app.sync.engine import create_and_run_sync, request_cancel
 from app.utils.config import ConfigManager
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
@@ -54,6 +54,35 @@ async def trigger_sync(
         "run_id": run.id,
         "message": "Sync started"
     }
+
+
+@router.post("/cancel")
+async def cancel_sync(
+    run_id: int | None = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Request cancellation of the current or specified sync run."""
+    # Determine the target run to cancel
+    target_run: SyncRun | None = None
+    if run_id is not None:
+        result = await db.execute(select(SyncRun).where(SyncRun.id == run_id))
+        target_run = result.scalar_one_or_none()
+    else:
+        result = await db.execute(
+            select(SyncRun)
+            .where(SyncRun.status == RunStatus.RUNNING)
+            .order_by(desc(SyncRun.started_at))
+            .limit(1)
+        )
+        target_run = result.scalar_one_or_none()
+
+    if not target_run:
+        raise HTTPException(status_code=404, detail="No running sync to cancel")
+
+    # Signal cancellation to the engine
+    request_cancel(target_run.id)
+
+    return {"success": True, "run_id": target_run.id, "message": "Cancellation requested"}
 
 
 @router.get("/runs")
