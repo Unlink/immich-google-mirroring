@@ -74,5 +74,6 @@ class SyncRun(Base):
     uploaded = Column(Integer, default=0)
     skipped = Column(Integer, default=0)
     failed = Column(Integer, default=0)
+    deleted = Column(Integer, default=0)
     log_excerpt = Column(Text)
     log_path = Column(String(500))

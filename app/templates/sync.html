@@ -61,6 +61,7 @@
                         <th>Uploaded</th>
                         <th>Skipped</th>
                         <th>Failed</th>
+                        <th>Deleted</th>
                         <th>Duration</th>
                     </tr>
                 </thead>
@@ -80,6 +81,7 @@
                         <td>{{ run.uploaded }}</td>
                         <td>{{ run.skipped }}</td>
                         <td>{{ run.failed }}</td>
+                        <td>{{ run.deleted }}</td>
                         <td>
                             {% if run.finished_at and run.started_at %}
                                 {{ "%.1f"|format((run.finished_at - run.started_at).total_seconds()) }}s
@@ -130,7 +132,8 @@ async function loadStatus() {
                     <p style="font-size: 1rem;">
                         ↑ ${data.last_run.uploaded} uploaded<br>
                         → ${data.last_run.skipped} skipped<br>
-                        ✗ ${data.last_run.failed} failed
+                        ✗ ${data.last_run.failed} failed<br>
+                        🗑 ${data.last_run.deleted} deleted
                     </p>
                 </div>
             `;

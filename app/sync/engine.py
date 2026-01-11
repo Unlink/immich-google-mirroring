@@ -5,7 +5,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from io import BytesIO
@@ -228,6 +228,108 @@ class SyncEngine:
             self.run.failed += 1
             return False
     
+    async def delete_orphaned_assets(self, current_immich_assets: List[Dict[str, Any]]) -> None:
+        """
+        Delete assets from Google Photos that no longer exist in Immich album
+        
+        Args:
+            current_immich_assets: List of current assets from Immich album
+        """
+        try:
+            # Check for cancel request
+            if self.cancel_event.is_set():
+                self.log("Cancellation requested; skipping orphan deletion")
+                return
+            
+            self.log("Checking for orphaned assets in Google Photos...")
+            
+            # Get all media items from Google Photos album
+            google_media_items = await self.google_client.list_album_media_items(
+                self.config.google_album_id
+            )
+            
+            if not google_media_items:
+                self.log("No media items found in Google Photos album")
+                return
+            
+            # Create set of current Immich asset IDs
+            current_immich_ids = {asset["id"] for asset in current_immich_assets}
+            
+            # Find orphaned items (in Google but not in Immich)
+            orphaned_items = []
+            
+            # Get all sync items from database
+            result = await self.db.execute(select(SyncItem))
+            sync_items = result.scalars().all()
+            
+            # Create mapping of google_media_item_id -> sync_item
+            google_to_sync = {
+                item.google_media_item_id: item 
+                for item in sync_items 
+                if item.google_media_item_id
+            }
+            
+            # Identify orphaned items
+            for google_item in google_media_items:
+                google_id = google_item["id"]
+                
+                # Find corresponding sync item
+                sync_item = google_to_sync.get(google_id)
+                
+                if sync_item:
+                    # Check if the Immich asset still exists in the album
+                    if sync_item.immich_asset_id not in current_immich_ids:
+                        orphaned_items.append({
+                            "google_id": google_id,
+                            "sync_item": sync_item,
+                            "filename": sync_item.immich_filename or "unknown"
+                        })
+            
+            if not orphaned_items:
+                self.log("No orphaned assets found")
+                return
+            
+            self.log(f"Found {len(orphaned_items)} orphaned asset(s) to delete")
+            
+            # Delete orphaned items from Google Photos
+            google_ids_to_delete = [item["google_id"] for item in orphaned_items]
+            
+            self.log(f"Deleting {len(google_ids_to_delete)} orphaned asset(s) from Google Photos...")
+            
+            result = await self.google_client.delete_media_items(google_ids_to_delete)
+            
+            self.log(f"Deleted {result['deleted']} asset(s), {result['failed']} failed")
+            
+            if result["errors"]:
+                for error in result["errors"][:10]:  # Log first 10 errors
+                    self.log(f"Deletion error: {error}", "WARNING")
+            
+            # Update sync items in database
+            for orphan in orphaned_items:
+                sync_item = orphan["sync_item"]
+                
+                # Check if deletion was successful for this item
+                google_id = orphan["google_id"]
+                was_deleted = google_id not in [
+                    err.split(":")[0].replace("Item ", "").strip() 
+                    for err in result.get("errors", [])
+                ]
+                
+                if was_deleted:
+                    # Remove the sync item from database
+                    await self.db.delete(sync_item)
+                    self.run.deleted += 1
+                else:
+                    # Mark as orphaned but keep the record
+                    sync_item.status = SyncStatus.ORPHANED
+                    sync_item.error = "Failed to delete from Google Photos"
+            
+            await self.db.commit()
+            
+        except Exception as e:
+            self.log(f"Error during orphan deletion: {e}", "ERROR")
+            # Don't fail the entire sync if orphan deletion fails
+    
     async def run_sync(self) -> bool:
         """Execute the sync process"""
         try:
@@ -286,6 +388,9 @@ class SyncEngine:
                 # Update run progress
                 await self.db.commit()
             
+            # Delete orphaned assets (exist in Google Photos but not in Immich)
+            await self.delete_orphaned_assets(assets)
+            
             # Mark run as complete
             self.run.status = RunStatus.OK
             self.run.finished_at = datetime.utcnow()
@@ -293,7 +398,7 @@ class SyncEngine:
             
             await self.db.commit()
             
-            self.log(f"Sync completed: {self.run.uploaded} uploaded, {self.run.skipped} skipped, {self.run.failed} failed")
+            self.log(f"Sync completed: {self.run.uploaded} uploaded, {self.run.skipped} skipped, {self.run.failed} failed, {self.run.deleted} deleted")
             return True
             
         except Exception as e:

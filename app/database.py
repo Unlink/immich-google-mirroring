@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.pool import StaticPool
 from app.models import Base
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", "/data/app.db")
 DATABASE_URL = f"sqlite+aiosqlite:///{DATABASE_PATH}"
@@ -29,6 +32,15 @@ async def init_db():
     """Initialize database tables"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Run migrations
+    try:
+        from app.migrations import migrate_database
+        async with async_session_maker() as session:
+            await migrate_database(session)
+    except Exception as e:
+        logger.error(f"Failed to run migrations: {e}")
+        # Don't fail startup on migration errors for existing installations
 
 
 async def get_db() -> AsyncSession:

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 SCOPES = [
     'https://www.googleapis.com/auth/photoslibrary.appendonly',
     'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata',
+    'https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile'
 ]
@@ -271,3 +272,93 @@ class GooglePhotosClient:
             response.raise_for_status()
             result = response.json()
             return result.get("newMediaItemResults", [])
+    
+    async def list_album_media_items(self, album_id: str) -> List[Dict[str, Any]]:
+        """
+        List all media items in an album
+        
+        Args:
+            album_id: The Google Photos album ID
+        
+        Returns:
+            List of media items with their IDs and metadata
+        """
+        self._refresh_token_if_needed()
+        
+        media_items = []
+        page_token = None
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            while True:
+                request_body = {
+                    "albumId": album_id,
+                    "pageSize": 100
+                }
+                if page_token:
+                    request_body["pageToken"] = page_token
+                
+                response = await client.post(
+                    "https://photoslibrary.googleapis.com/v1/mediaItems:search",
+                    headers={
+                        "Authorization": f"Bearer {self.credentials.token}",
+                        "Content-Type": "application/json"
+                    },
+                    json=request_body
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                if "mediaItems" in data:
+                    media_items.extend(data["mediaItems"])
+                
+                page_token = data.get("nextPageToken")
+                if not page_token:
+                    break
+        
+        return media_items
+    
+    async def delete_media_items(self, media_item_ids: List[str]) -> Dict[str, Any]:
+        """
+        Delete media items from Google Photos
+        
+        Note: This removes items from the library. Items that were added to shared albums
+        may still be visible to other users.
+        
+        Args:
+            media_item_ids: List of media item IDs to delete
+        
+        Returns:
+            Dictionary with deletion results
+        """
+        self._refresh_token_if_needed()
+        
+        deleted = 0
+        failed = 0
+        errors = []
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for media_item_id in media_item_ids:
+                try:
+                    # Note: Google Photos API doesn't have a batch delete endpoint
+                    # We need to delete items one by one
+                    response = await client.delete(
+                        f"https://photoslibrary.googleapis.com/v1/mediaItems/{media_item_id}",
+                        headers={
+                            "Authorization": f"Bearer {self.credentials.token}"
+                        }
+                    )
+                    # A 204 or 200 response means success
+                    if response.status_code in [200, 204]:
+                        deleted += 1
+                    else:
+                        failed += 1
+                        errors.append(f"Item {media_item_id}: HTTP {response.status_code}")
+                except Exception as e:
+                    failed += 1
+                    errors.append(f"Item {media_item_id}: {str(e)}")
+        
+        return {
+            "deleted": deleted,
+            "failed": failed,
+            "errors": errors
+        }
