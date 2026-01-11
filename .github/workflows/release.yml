@@ -19,6 +19,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set lowercase owner
+        id: vars
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
       - name: Extract version from tag
         id: version
         run: |
@@ -76,12 +80,12 @@ jobs:
             
             Pull the Docker image:
             ```bash
-            docker pull ghcr.io/${{ github.repository_owner }}/immich-google-sync:${{ steps.version.outputs.version }}
+            docker pull ghcr.io/${{ steps.vars.outputs.owner }}/immich-google-sync:${{ steps.version.outputs.version }}
             ```
             
             Or use the latest tag:
             ```bash
-            docker pull ghcr.io/${{ github.repository_owner }}/immich-google-sync:latest
+            docker pull ghcr.io/${{ steps.vars.outputs.owner }}/immich-google-sync:latest
             ```
           draft: false
           prerelease: false
@@ -96,6 +100,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set lowercase owner
+        id: vars
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
       - name: Extract version from tag
         id: version
@@ -120,8 +128,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/immich-google-sync:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/immich-google-sync:latest
+            ghcr.io/${{ steps.vars.outputs.owner }}/immich-google-sync:${{ steps.version.outputs.version }}
+            ghcr.io/${{ steps.vars.outputs.owner }}/immich-google-sync:latest
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}

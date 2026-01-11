@@ -72,16 +72,16 @@ docker pull ghcr.io/<owner>/immich-google-sync:latest
 
 ```bash
 # 1. Aktualizovať CHANGELOG.md a verziu
-./release.ps1 1.1.0
+./release.ps1 1.0.1
 
 # Alebo manuálne:
-./version.ps1 set 1.1.0
+./version.ps1 set 1.0.1
 # (editovať CHANGELOG.md)
 git add app/__version__.py CHANGELOG.md docker-compose.yml
-git commit -m "chore(release): v1.1.0"
-git tag -a v1.1.0 -m "Release version 1.1.0"
+git commit -m "chore(release): v1.0.1"
+git tag -a v1.0.1 -m "Release version 1.0.1"
 git push origin main
-git push origin v1.1.0
+git push origin v1.0.1
 
 # GitHub Actions automaticky:
 # - Vytvorí Release na GitHube

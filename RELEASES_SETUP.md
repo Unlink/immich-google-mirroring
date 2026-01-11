@@ -27,19 +27,19 @@
 #### **release.ps1** (Windows)
 ```powershell
 # Vytvorí kompletný release
-.\release.ps1 1.1.0
+.\release.ps1 1.0.1
 
 # Dry-run test
-.\release.ps1 1.1.0 -DryRun
+.\release.ps1 1.0.1 -DryRun
 ```
 
 #### **release.sh** (Linux/Mac)
 ```bash
 # Vytvorí kompletný release
-./release.sh 1.1.0
+./release.sh 1.0.1
 
 # Dry-run test
-./release.sh 1.1.0 --dry-run
+./release.sh 1.0.1 --dry-run
 ```
 
 **Čo robí:**
@@ -87,34 +87,34 @@
 
 ```powershell
 # Windows
-.\release.ps1 1.1.0
+.\release.ps1 1.0.1
 
 # Linux/Mac
-./release.sh 1.1.0
+./release.sh 1.0.1
 ```
 
 **Metóda 2: Step-by-step**
 
 ```bash
 # 1. Aktualizovať verziu
-./version.ps1 set 1.1.0
+./version.ps1 set 1.0.1
 
 # 2. Editovať CHANGELOG.md
 
 # 3. Commit
 git add app/__version__.py CHANGELOG.md docker-compose.yml
-git commit -m "chore(release): v1.1.0"
+git commit -m "chore(release): v1.0.1"
 
 # 4. Tag a push
-git tag -a v1.1.0 -m "Release version 1.1.0"
+git tag -a v1.0.1 -m "Release version 1.0.1"
 git push origin main
-git push origin v1.1.0
+git push origin v1.0.1
 ```
 
 ### GitHub Actions Flow
 
 ```
-git push origin v1.1.0
+git push origin v1.0.1
         ↓
 release.yml spustí
   - Vytvorí GitHub Release
@@ -122,7 +122,7 @@ release.yml spustí
         ↓
 docker-publish.yml spustí
   - Build Docker image (linux/amd64, linux/arm64)
-  - Push na ghcr.io/owner/immich-google-sync:1.1.0
+  - Push na ghcr.io/owner/immich-google-sync:1.0.1
   - Push na ghcr.io/owner/immich-google-sync:latest
         ↓
 ✅ Release completed!
@@ -134,13 +134,13 @@ Po release sú dostupné:
 
 ```bash
 # Konkrétna verzia
-docker pull ghcr.io/<owner>/immich-google-sync:1.1.0
+docker pull ghcr.io/<owner>/immich-google-sync:1.0.1
 
 # Latest
 docker pull ghcr.io/<owner>/immich-google-sync:latest
 
 # Major.minor
-docker pull ghcr.io/<owner>/immich-google-sync:1.1
+docker pull ghcr.io/<owner>/immich-google-sync:1.0
 
 # Major
 docker pull ghcr.io/<owner>/immich-google-sync:1
