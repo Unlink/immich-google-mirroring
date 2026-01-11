@@ -19,8 +19,8 @@ Projekt má GitHub Actions workflows na automatizáciu:
 
 Alebo manuálne:
 ```bash
-./version.ps1 set 1.1.0
-./version.sh set 1.1.0
+./version.ps1 set 1.0.1
+./version.sh set 1.0.1
 ```
 
 ### Krok 2: Aktualizujte CHANGELOG.md
@@ -28,7 +28,7 @@ Alebo manuálne:
 Pridajte položky pre novú verziu na začiatok súboru:
 
 ```markdown
-## [1.1.0] - 2026-01-11
+## [1.0.1] - 2026-01-11
 
 ### Added
 - Nová funkcia X
@@ -52,15 +52,15 @@ Pridajte položky pre novú verziu na začiatok súboru:
 
 ```bash
 git add app/__version__.py CHANGELOG.md docker-compose.yml
-git commit -m "chore(release): v1.1.0"
+git commit -m "chore(release): v1.0.1"
 ```
 
 ### Krok 4: Vytvorte Git tag
 
 ```bash
-git tag -a v1.1.0 -m "Release version 1.1.0"
+git tag -a v1.0.1 -m "Release version 1.0.1"
 git push origin main
-git push origin v1.1.0
+git push origin v1.0.1
 ```
 
 ## Čo sa stane automaticky
@@ -69,11 +69,11 @@ Keď pushnete tag `v*`:
 
 1. ✅ **docker-publish workflow** spustí build Docker image
    - Build pre `linux/amd64` a `linux/arm64`
-   - Push na `ghcr.io/<owner>/immich-google-sync:1.1.0`
+   - Push na `ghcr.io/<owner>/immich-google-sync:1.0.1`
    - Push na `ghcr.io/<owner>/immich-google-sync:latest`
 
 2. ✅ **release workflow** spustí:
-   - Extrahuje verziu z tagu (`v1.1.0` → `1.1.0`)
+   - Extrahuje verziu z tagu (`v1.0.1` → `1.0.1`)
    - Extrahuje changelog z `CHANGELOG.md`
    - Vytvorí GitHub Release s descriptionom
    - Pushne Docker image s konkrétnym tagom
@@ -92,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-01-11
+## [1.0.1] - 2026-01-11
 
 ### Added
 - Nový feature
@@ -108,19 +108,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```bash
 # 1. Aktualizovať verziu
-.\version.ps1 set 1.1.0
+.\version.ps1 set 1.0.1
 
 # 2. Aktualizovať CHANGELOG.md
 # (manuálne editovať súbor)
 
 # 3. Commit
 git add app/__version__.py CHANGELOG.md docker-compose.yml
-git commit -m "chore(release): v1.1.0"
+git commit -m "chore(release): v1.0.1"
 
 # 4. Tag a push
-git tag -a v1.1.0 -m "Release version 1.1.0"
+git tag -a v1.0.1 -m "Release version 1.0.1"
 git push origin main
-git push origin v1.1.0
+git push origin v1.0.1
 
 # GitHub Actions potom automaticky:
 # - Build Docker image
@@ -155,7 +155,7 @@ Spustí sa len pri:
 
 Skontrolujte:
 1. Logs na https://github.com/<owner>/immich-google-mirroring/actions
-2. Či ste pushli tag správne: `git push origin v1.1.0`
+2. Či ste pushli tag správne: `git push origin v1.0.1`
 3. Či je `GITHUB_TOKEN` dostupný (mal by byť defaultne)
 
 ### Docker image sa nepushnul

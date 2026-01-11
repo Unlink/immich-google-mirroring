@@ -6,7 +6,7 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688.svg)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](docs/VERSIONING.md)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](docs/VERSIONING.md)
 [![Docker Build](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml)
 
 ## Features
@@ -192,11 +192,11 @@ curl http://localhost:8080/api/version
 ```bash
 # Using shell script (Linux/Mac)
 ./version.sh bump patch  # or: major, minor, patch
-./version.sh set 1.1.0
+./version.sh set 1.0.1
 
 # Using PowerShell (Windows)
 .\version.ps1 bump patch
-.\version.ps1 set 1.1.0
+.\version.ps1 set 1.0.1
 ```
 
 ## Releasing New Versions
@@ -205,10 +205,10 @@ Automated release process with GitHub Actions:
 
 ```bash
 # One-command release (Linux/Mac)
-./release.sh 1.1.0
+./release.sh 1.0.1
 
 # One-command release (Windows)
-.\release.ps1 1.1.0
+.\release.ps1 1.0.1
 
 # Or manually step-by-step (see docs/RELEASE.md)
 ```

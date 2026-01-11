@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Fixed
+
+### Changed
+
+### Removed
+
+## [1.0.1] - 2026-01-11
+
+### Added
 - Version management system with semantic versioning
 - GitHub Actions workflows for automated releases
 - CLI tools for version management (`version.ps1`, `version.sh`, `version_cli.py`)

@@ -4,7 +4,7 @@ Tento dokument popisuje systém správy verzií pre projekt Immich Google Photos
 
 ## Súčasná verzia
 
-Súčasná verzia aplikácie: **1.0.0**
+Súčasná verzia aplikácie: **1.0.1**
 
 ## Systém verziovania
 
@@ -19,8 +19,8 @@ Projekt používa [Semantic Versioning](https://semver.org/) s formátom `MAJOR.
 Verzia je centrálne spravovaná v súbore `app/__version__.py`:
 
 ```python
-__version__ = "1.0.0"
-__version_info__ = (1, 0, 0)
+__version__ = "1.0.1"
+__version_info__ = (1, 0, 1)
 __title__ = "Immich Google Photos Mirroring"
 __description__ = "Dockerized Python FastAPI application..."
 ```
