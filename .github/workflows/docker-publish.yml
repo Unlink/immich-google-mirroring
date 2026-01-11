@@ -36,12 +36,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract version from app/__version__.py
+        id: appversion
+        run: |
+          VERSION=$(grep -oP '__version__ = "\K[^"]+' app/__version__.py)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "App version: $VERSION"
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository_owner }}/immich-google-sync
+            ${{ env.REGISTRY_IMAGE }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -50,6 +57,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.appversion.outputs.version }},enable=${{ github.ref_type == 'branch' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -64,7 +72,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ steps.meta.outputs.version }}
+            VERSION=${{ steps.appversion.outputs.version }}
 
       - name: Image digest
-        run: echo ${{ steps.build-and-push.outputs.digest }}
+        run: echo "Image built and pushed successfully"

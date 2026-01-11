@@ -1,0 +1,137 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Extract changelog for this release
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          
+          # Extract changelog content between this version and previous version
+          python3 << 'EOF'
+          import re
+          
+          with open('CHANGELOG.md', 'r') as f:
+              content = f.read()
+          
+          # Find section for this version
+          pattern = rf'## \[{re.escape("${{ steps.version.outputs.version }}")}\].*?(?=## \[|$)'
+          match = re.search(pattern, content, re.DOTALL)
+          
+          if match:
+              changelog_text = match.group(0).strip()
+              # Remove the header line
+              changelog_text = '\n'.join(changelog_text.split('\n')[1:]).strip()
+          else:
+              changelog_text = "See CHANGELOG.md for details"
+          
+          # Write to file for use in next step
+          with open('/tmp/changelog.txt', 'w') as f:
+              f.write(changelog_text)
+          EOF
+          
+          # Read changelog
+          CHANGELOG=$(cat /tmp/changelog.txt | head -c 65000)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          body: |
+            # Immich Google Photos Mirroring v${{ steps.version.outputs.version }}
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Docker Image
+            
+            Pull the Docker image:
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/immich-google-sync:${{ steps.version.outputs.version }}
+            ```
+            
+            Or use the latest tag:
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/immich-google-sync:latest
+            ```
+          draft: false
+          prerelease: false
+
+  build-and-push:
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image with version tag
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/immich-google-sync:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/immich-google-sync:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.version.outputs.version }}
+
+      - name: Image digest
+        run: echo "Image pushed successfully for version ${{ steps.version.outputs.version }}"

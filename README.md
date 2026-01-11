@@ -6,6 +6,7 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688.svg)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](docs/VERSIONING.md)
 [![Docker Build](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml)
 
 ## Features
@@ -163,6 +164,63 @@ For detailed information, see the [docs](docs/) directory:
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment options
 - [Architecture](docs/ARCHITECTURE.md) - System design and data flow
 - [Contributing](docs/CONTRIBUTING.md) - How to contribute
+- [Versioning](docs/VERSIONING.md) - Version management and release process
+- [Release Guide](docs/RELEASE.md) - How to create releases and use GitHub Actions
+- [CI/CD Pipeline](docs/CI-CD.md) - GitHub Actions workflows explained
+- [GitHub Configuration](docs/GITHUB-CONFIG.md) - GitHub setup for releases
+
+## Version Management
+
+This project uses **Semantic Versioning** (MAJOR.MINOR.PATCH).
+
+**Check version:**
+```bash
+# Using Python
+python -m app.version_cli
+
+# Using API
+curl http://localhost:8080/api/version
+
+# Using shell script (Linux/Mac)
+./version.sh show
+
+# Using PowerShell (Windows)
+.\version.ps1 show
+```
+
+**Update version:**
+```bash
+# Using shell script (Linux/Mac)
+./version.sh bump patch  # or: major, minor, patch
+./version.sh set 1.1.0
+
+# Using PowerShell (Windows)
+.\version.ps1 bump patch
+.\version.ps1 set 1.1.0
+```
+
+## Releasing New Versions
+
+Automated release process with GitHub Actions:
+
+```bash
+# One-command release (Linux/Mac)
+./release.sh 1.1.0
+
+# One-command release (Windows)
+.\release.ps1 1.1.0
+
+# Or manually step-by-step (see docs/RELEASE.md)
+```
+
+This will automatically:
+1. Update version in code
+2. Update CHANGELOG.md
+3. Create git commit and tag
+4. Trigger GitHub Actions to build and push Docker image
+5. Create GitHub Release with changelog
+
+See [Release Guide](docs/RELEASE.md) for complete documentation.
 
 ## Technology Stack
 

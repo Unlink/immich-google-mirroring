@@ -3,10 +3,16 @@ version: '3.8'
 services:
   immich-gphotos-sync:
     # Use pre-built image (recommended):
+    # image: ghcr.io/unlink/immich-google-sync:1.0.0
     # image: ghcr.io/unlink/immich-google-sync:latest
     
     # Or build from source:
-    build: .
+    build:
+      context: .
+      args:
+        VERSION: 1.0.0
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-unknown}
     
     container_name: immich-gphotos-sync
     ports:
@@ -21,3 +27,5 @@ services:
       - DATABASE_PATH=/data/app.db
       - LOG_PATH=/data/logs
     restart: unless-stopped
+
+

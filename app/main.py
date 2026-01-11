@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import logging
 import os
 
+from app import __version__, __title__, __description__
 from app.database import init_db
 from app.scheduler import start_scheduler, stop_scheduler, update_scheduler
 from app.routes import pages, config, auth, sync, immich
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
-    logger.info("Starting Immich-Google Photos Sync application")
+    logger.info(f"Starting Immich-Google Photos Sync application (v{__version__})")
     
     # Initialize database
     await init_db()
@@ -52,9 +53,9 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Immich → Google Photos Sync",
-    description="Synchronize Immich albums to Google Photos",
-    version="1.0.0",
+    title=__title__,
+    description=__description__,
+    version=__version__,
     lifespan=lifespan
 )
 
@@ -79,6 +80,16 @@ app.include_router(immich.router)
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+
+@app.get("/api/version")
+async def get_version():
+    """Get application version information"""
+    return {
+        "version": __version__,
+        "name": __title__,
+        "description": __description__
+    }
 
 
 if __name__ == "__main__":
