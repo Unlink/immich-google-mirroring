@@ -8,15 +8,6 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![Docker Build](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Unlink/immich-google-mirroring/actions/workflows/docker-publish.yml)
 
-## 📚 Documentation
-
-- **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
-- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment options
-- **[Architecture](ARCHITECTURE.md)** - System design and data flow
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
-- **[Changelog](CHANGELOG.md)** - Version history
-- **[GitHub Actions](.github/WORKFLOWS.md)** - CI/CD and Docker publishing
-
 ## Features
 
 - 🔄 **Automatic Sync**: Schedule periodic synchronization from Immich to Google Photos
@@ -27,16 +18,7 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 - 📝 **Sync History**: Track all sync runs with detailed statistics and logs
 - 🔑 **OAuth2**: Secure Google Photos authentication with refresh token support
 
-## Architecture
-
-- **Backend**: Python 3.12 + FastAPI
-- **Database**: SQLite with SQLAlchemy (async)
-- **OAuth**: Google OAuth2 web flow with append-only scope
-- **Scheduler**: APScheduler for background jobs
-- **UI**: Server-rendered templates with Jinja2
-- **Containerization**: Docker + docker-compose
-
-## Quick Start
+## 🚀 Quick Start (5 minutes)
 
 ### Prerequisites
 
@@ -50,253 +32,126 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 
 ### Installation
 
-#### Using Pre-built Docker Image (Recommended)
-
 ```bash
-# Pull from GitHub Container Registry
-docker pull ghcr.io/unlink/immich-google-sync:latest
-
-# Run with docker-compose
-wget https://raw.githubusercontent.com/Unlink/immich-google-mirroring/main/docker-compose.yml
-# Edit docker-compose.yml to use pre-built image:
-# image: ghcr.io/unlink/immich-google-sync:latest
-
-# Create .env file
-cp .env.example .env
-# Edit .env with your settings
-
-# Start
-docker-compose up -d
-```
-
-#### Building from Source
-
-1. Clone the repository:
-```bash
+# 1. Clone and setup
 git clone https://github.com/Unlink/immich-google-mirroring.git
 cd immich-google-mirroring
-```
 
-2. Create `.env` file:
-```bash
+# 2. Create environment file
 cp .env.example .env
+
+# 3. Generate secret key
+python3 generate_key.py
+# Copy the generated key to .env as APP_SECRET_KEY
+
+# 4. Add your Google OAuth credentials to .env
+# GOOGLE_CLIENT_ID=...
+# GOOGLE_CLIENT_SECRET=...
+# BASE_URL=http://your-server:8080
+
+# 5. Start the application
+docker-compose up -d
+
+# 6. Access the web UI
+# Open http://localhost:8080 in your browser
 ```
 
-3. Edit `.env` and set your configuration:
-```env
-APP_SECRET_KEY=your-secret-key-at-least-32-chars-long
-BASE_URL=http://localhost:8080
-GOOGLE_CLIENT_ID=your-google-oauth-client-id
-GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
-DATABASE_PATH=/data/app.db
-LOG_PATH=/data/logs
-```
+### Initial Configuration
 
-4. Start with Docker Compose:
+1. **Settings** → Configure your Immich URL and API Key
+2. **Albums** → Select which album to sync
+3. **Google Auth** → Connect your Google Photos account
+4. **Sync** → Enable auto-sync or run manual sync
+
+## 🔧 Common Commands
+
+### Initial Configuration
+
+1. **Settings** → Configure your Immich URL and API Key
+2. **Albums** → Select which album to sync
+3. **Google Auth** → Connect your Google Photos account
+4. **Sync** → Enable auto-sync or run manual sync
+
+## 🔧 Common Commands
+
+### Docker Management
 ```bash
+# Start
+docker-compose up -d
+
+# Stop
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Restart
+docker-compose restart
+
+# Update to latest version
+docker-compose pull
 docker-compose up -d
 ```
 
-5. Access the web UI at `http://localhost:8080`
-
-## Setup Guide
-
-### Step 1: Configure Immich Connection
-
-1. Navigate to **Settings** page
-2. Enter your Immich URL (e.g., `https://immich.example.com`)
-3. Enter your Immich API Key (create in Immich → Account Settings → API Keys)
-4. Click "Test Connection" to verify
-5. Click "Save Configuration"
-
-### Step 2: Select Album
-
-1. Navigate to **Albums** page
-2. Browse your Immich albums
-3. Click "Select" on the album you want to sync
-
-### Step 3: Connect Google Photos
-
-1. Navigate to **Google Auth** page
-2. Click "Connect Google Photos"
-3. Complete OAuth consent flow
-4. Grant permissions for Photos Library API
-
-### Step 4: Configure Sync
-
-1. Navigate to **Sync** page
-2. Click "▶ Run Sync Now" to test manual sync
-3. Enable "Auto Sync" for scheduled synchronization
-4. Set sync interval (default: 60 minutes)
-
-## Database Schema
-
-### Tables
-
-**app_config** - Application configuration
-- Immich URL, API key (encrypted)
-- Selected album information
-- Google refresh token (encrypted)
-- Sync schedule settings
-
-**sync_items** - Individual asset tracking
-- Immich asset ID, checksum, metadata
-- Google media item ID
-- Sync status (OK/FAILED/PENDING/ORPHANED)
-- Last sync timestamp
-
-**sync_runs** - Sync execution history
-- Start/finish timestamps
-- Status (RUNNING/OK/FAILED/CANCELLED)
-- Counters: total, uploaded, skipped, failed
-- Log excerpts
-
-## API Endpoints
-
-### Configuration
-- `POST /api/config/immich` - Update Immich settings
-- `POST /api/config/immich/test` - Test Immich connection
-- `POST /api/config/album` - Select album
-- `POST /api/config/sync` - Update sync settings
-- `GET /api/config/status` - Get config status
-
-### Authentication
-- `GET /auth/google/start` - Start OAuth flow
-- `GET /auth/google/callback` - OAuth callback
-- `GET /auth/google/status` - Check auth status
-- `POST /auth/google/disconnect` - Disconnect Google
-
-### Sync Operations
-- `POST /api/sync/run` - Trigger sync now
-- `GET /api/sync/runs` - List recent runs
-- `GET /api/sync/runs/{id}` - Get run details
-- `GET /api/sync/status` - Get current status
-- `GET /api/sync/items` - List sync items
-
-### Immich
-- `GET /api/immich/albums` - List Immich albums
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `APP_SECRET_KEY` | Encryption key for secrets | `changeme-generate-random-key` |
-| `BASE_URL` | Application base URL | `http://localhost:8080` |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | - |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | - |
-| `DATABASE_PATH` | SQLite database path | `/data/app.db` |
-| `LOG_PATH` | Log files directory | `/data/logs` |
-
-## Development
-
-### Local Development
-
+### Backup & Restore
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Backup database
+cp data/app.db data/backup-$(date +%Y%m%d).db
 
-# Set environment variables
-export APP_SECRET_KEY="your-secret-key"
-export GOOGLE_CLIENT_ID="your-client-id"
-export GOOGLE_CLIENT_SECRET="your-client-secret"
-export BASE_URL="http://localhost:8080"
-export DATABASE_PATH="./data/app.db"
-
-# Run the application
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+# Restore database
+cp data/backup.db data/app.db
+docker-compose restart
 ```
 
-### Project Structure
+## 🐛 Troubleshooting
 
-```
-.
-├── app/
-│   ├── __init__.py
-│   ├── config.py              # Application settings
-│   ├── main.py                # FastAPI application
-│   ├── database.py            # Database connection
-│   ├── models.py              # SQLAlchemy models
-│   ├── scheduler.py           # APScheduler integration
-│   ├── clients/               # API clients
-│   │   ├── immich.py          # Immich API client
-│   │   └── google.py          # Google Photos client
-│   ├── routes/                # FastAPI routes
-│   │   ├── pages.py           # Web UI pages
-│   │   ├── config.py          # Config API
-│   │   ├── auth.py            # OAuth endpoints
-│   │   ├── sync.py            # Sync API
-│   │   └── immich.py          # Immich API
-│   ├── sync/                  # Sync engine
-│   │   └── engine.py          # Sync logic
-│   ├── templates/             # Jinja2 templates
-│   │   ├── base.html
-│   │   ├── dashboard.html
-│   │   ├── settings.html
-│   │   ├── albums.html
-│   │   ├── google.html
-│   │   └── sync.html
-│   └── utils/                 # Utilities
-│       ├── encryption.py      # Fernet encryption
-│       └── config.py          # Config manager
-├── data/                      # Persistent data (volume)
-│   ├── app.db                 # SQLite database
-│   └── logs/                  # Application logs
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
+### Container won't start
+```bash
+docker-compose logs
+docker-compose ps
 ```
 
-## Sync Algorithm
+### OAuth errors
+- Verify `BASE_URL` in `.env` matches your actual URL
+- Check Google Cloud Console redirect URI matches exactly
+- Ensure Photos Library API is enabled in Google Cloud
 
-1. **Initialize**: Load configuration and authenticate clients
-2. **Ensure Album**: Create or find Google Photos album
-3. **Fetch Assets**: Get all assets from Immich album
-4. **Process Each Asset**:
-   - Calculate fingerprint (checksum or timestamp+filename)
-   - Check sync_items table for existing entry
-   - If fingerprint matches → skip (already synced)
-   - If new/changed:
-     - Download from Immich (streaming)
-     - Upload to Google Photos
-     - Create media item in album
-     - Update sync_items table
-5. **Track Progress**: Update counters and logs
-6. **Complete**: Mark run as OK/FAILED
+### Sync not running
+- Check `/settings` - verify Immich connection works
+- Check `/google` - ensure Google is connected
+- Review logs: `docker-compose logs -f`
 
-## Security Considerations
+## 📁 Important Files
 
-- ✅ API keys and tokens encrypted at rest (Fernet)
-- ✅ OAuth2 with state parameter for CSRF protection
-- ✅ Refresh tokens stored securely
-- ✅ No sensitive data in logs
+- **Configuration**: `data/app.db` (SQLite database)
+- **Logs**: `data/logs/app.log`
+- **Environment**: `.env` (secrets and settings)
+- **Backup**: Always backup `data/app.db` before updates
+
+## 🔐 Security Tips
+
+- ✅ Generate strong `APP_SECRET_KEY` (use `generate_key.py`)
+- ✅ Use HTTPS in production
+- ✅ Regular database backups
+- ✅ Keep OAuth credentials secure
 - ⚠️ Consider adding basic auth for web UI in production
-- ⚠️ Use strong `APP_SECRET_KEY` (at least 32 characters)
-- ⚠️ HTTPS recommended for production deployment
 
-## Troubleshooting
+## 📚 Advanced Documentation
 
-### Sync Failed - Authentication Error
-- Check if Google OAuth token is still valid
-- Try disconnecting and reconnecting Google Photos
+For detailed information, see the [docs](docs/) directory:
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment options
+- [Architecture](docs/ARCHITECTURE.md) - System design and data flow
+- [Contributing](docs/CONTRIBUTING.md) - How to contribute
 
-### Assets Not Uploading
-- Verify Google Photos API quotas
-- Check Immich asset accessibility
-- Review sync run logs for specific errors
+## Technology Stack
 
-### Database Locked Errors
-- Ensure only one instance is running
-- Check file permissions on `/data` volume
-
-### OAuth Redirect Mismatch
-- Verify `BASE_URL` matches your actual URL
-- Update redirect URI in Google Cloud Console
+- **Backend**: Python 3.12 + FastAPI
+- **Database**: SQLite with SQLAlchemy (async)
+- **OAuth**: Google OAuth2 web flow
+- **Scheduler**: APScheduler for background jobs
+- **UI**: Server-rendered templates with Jinja2
+- **Container**: Docker + docker-compose
 
 ## License
 
-MIT License
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
+MIT License - see [LICENSE](LICENSE) file for details.
