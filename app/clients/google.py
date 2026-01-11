@@ -346,8 +346,9 @@ class GooglePhotosClient:
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
                 # Use removeMediaItems endpoint to remove from album
+                # Note: The endpoint uses a colon (:) separator, not a slash (/)
                 response = await client.post(
-                    f"https://photoslibrary.googleapis.com/v1/albums/{album_id}/removeMediaItems",
+                    f"https://photoslibrary.googleapis.com/v1/albums/{album_id}:removeMediaItems",
                     headers={
                         "Authorization": f"Bearer {self.credentials.token}",
                         "Content-Type": "application/json"
