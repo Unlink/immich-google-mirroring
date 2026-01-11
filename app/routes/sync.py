@@ -180,7 +180,8 @@ async def get_sync_status(db: AsyncSession = Depends(get_db)):
             "total_assets": last_run.total_assets,
             "uploaded": last_run.uploaded,
             "skipped": last_run.skipped,
-            "failed": last_run.failed
+            "failed": last_run.failed,
+            "deleted": last_run.deleted
         } if last_run else None,
         "total_items": total_items,
         "synced_items": synced_items

@@ -317,15 +317,15 @@ class GooglePhotosClient:
         
         return media_items
     
-    async def delete_media_items(self, media_item_ids: List[str]) -> Dict[str, Any]:
+    async def delete_media_items(self, media_item_ids: List[str], album_id: str) -> Dict[str, Any]:
         """
-        Delete media items from Google Photos
+        Delete media items from Google Photos album
         
-        Note: This removes items from the library. Items that were added to shared albums
-        may still be visible to other users.
+        This removes items from the specified album using the removeMediaItems endpoint.
         
         Args:
             media_item_ids: List of media item IDs to delete
+            album_id: The album ID to remove items from
         
         Returns:
             Dictionary with deletion results
@@ -336,26 +336,37 @@ class GooglePhotosClient:
         failed = 0
         errors = []
         
+        if not media_item_ids:
+            return {
+                "deleted": 0,
+                "failed": 0,
+                "errors": []
+            }
+        
         async with httpx.AsyncClient(timeout=60.0) as client:
-            for media_item_id in media_item_ids:
-                try:
-                    # Note: Google Photos API doesn't have a batch delete endpoint
-                    # We need to delete items one by one
-                    response = await client.delete(
-                        f"https://photoslibrary.googleapis.com/v1/mediaItems/{media_item_id}",
-                        headers={
-                            "Authorization": f"Bearer {self.credentials.token}"
-                        }
-                    )
-                    # A 204 or 200 response means success
-                    if response.status_code in [200, 204]:
-                        deleted += 1
-                    else:
-                        failed += 1
-                        errors.append(f"Item {media_item_id}: HTTP {response.status_code}")
-                except Exception as e:
-                    failed += 1
-                    errors.append(f"Item {media_item_id}: {str(e)}")
+            try:
+                # Use removeMediaItems endpoint to remove from album
+                response = await client.post(
+                    f"https://photoslibrary.googleapis.com/v1/albums/{album_id}/removeMediaItems",
+                    headers={
+                        "Authorization": f"Bearer {self.credentials.token}",
+                        "Content-Type": "application/json"
+                    },
+                    json={"mediaItemIds": media_item_ids}
+                )
+                
+                if response.status_code in [200, 204]:
+                    # All items removed successfully
+                    deleted = len(media_item_ids)
+                else:
+                    failed = len(media_item_ids)
+                    errors.append(f"Failed to remove from album: HTTP {response.status_code}")
+                    logger.error(f"Remove from album failed: {response.text}")
+                    
+            except Exception as e:
+                failed = len(media_item_ids)
+                errors.append(f"Exception: {str(e)}")
+                logger.error(f"Failed to remove media items: {e}")
         
         return {
             "deleted": deleted,

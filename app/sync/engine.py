@@ -284,6 +284,12 @@ class SyncEngine:
                             "sync_item": sync_item,
                             "filename": sync_item.immich_filename or "unknown"
                         })
+                else:
+                    # Media item in Google Photos but no sync record
+                    # This could be a photo that was uploaded manually or from another source
+                    # Only mark as orphan if we have a risk of deleting user photos
+                    # For safety, we skip items without sync records
+                    self.log(f"Skipping media item without sync record: {google_id}", "DEBUG")
             
             if not orphaned_items:
                 self.log("No orphaned assets found")
@@ -296,7 +302,10 @@ class SyncEngine:
             
             self.log(f"Deleting {len(google_ids_to_delete)} orphaned asset(s) from Google Photos...")
             
-            result = await self.google_client.delete_media_items(google_ids_to_delete)
+            result = await self.google_client.delete_media_items(
+                google_ids_to_delete,
+                self.config.google_album_id
+            )
             
             self.log(f"Deleted {result['deleted']} asset(s), {result['failed']} failed")
             
