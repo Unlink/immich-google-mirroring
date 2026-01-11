@@ -319,16 +319,17 @@ class GooglePhotosClient:
     
     async def delete_media_items(self, media_item_ids: List[str], album_id: str) -> Dict[str, Any]:
         """
-        Delete media items from Google Photos album
+        Remove media items from Google Photos album using batchRemoveMediaItems
         
-        This removes items from the specified album using the removeMediaItems endpoint.
+        This removes items from the specified album. Items remain in the user's library
+        but are no longer visible in the album.
         
         Args:
-            media_item_ids: List of media item IDs to delete
+            media_item_ids: List of media item IDs to remove
             album_id: The album ID to remove items from
         
         Returns:
-            Dictionary with deletion results
+            Dictionary with removal results
         """
         self._refresh_token_if_needed()
         
@@ -345,10 +346,9 @@ class GooglePhotosClient:
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
-                # Use removeMediaItems endpoint to remove from album
-                # Note: The endpoint uses a colon (:) separator, not a slash (/)
+                # Use batchRemoveMediaItems endpoint
                 response = await client.post(
-                    f"https://photoslibrary.googleapis.com/v1/albums/{album_id}:removeMediaItems",
+                    f"https://photoslibrary.googleapis.com/v1/albums/{album_id}:batchRemoveMediaItems",
                     headers={
                         "Authorization": f"Bearer {self.credentials.token}",
                         "Content-Type": "application/json"
@@ -357,7 +357,7 @@ class GooglePhotosClient:
                 )
                 
                 if response.status_code in [200, 204]:
-                    # All items removed successfully
+                    # All items removed successfully from album
                     deleted = len(media_item_ids)
                 else:
                     failed = len(media_item_ids)

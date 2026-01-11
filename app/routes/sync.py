@@ -251,3 +251,24 @@ async def get_sync_run_logs(
         }
         for log in logs
     ]
+
+
+@router.post("/items/{asset_id}/mark-deleted")
+async def mark_item_deleted(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Mark an orphaned item as manually deleted"""
+    result = await db.execute(
+        select(SyncItem).where(SyncItem.immich_asset_id == asset_id)
+    )
+    item = result.scalar_one_or_none()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Delete the sync item from database
+    await db.delete(item)
+    await db.commit()
+    
+    return {"success": True, "message": "Item marked as deleted"}

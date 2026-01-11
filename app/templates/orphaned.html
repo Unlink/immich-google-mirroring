@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Orphaned Items</h2>
+    <p style="color: #6b7280; margin-bottom: 1.5rem;">
+        These items were removed from the Immich album but still exist in Google Photos. 
+        Google Photos API does not support programmatic deletion, so you must delete them manually.
+    </p>
+    
+    {% if orphaned_items %}
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px;">
+            <strong>⚠️ Action Required:</strong> {{ orphaned_items|length }} item(s) need to be manually deleted from Google Photos.
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb;">
+                    <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Filename</th>
+                    <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Immich Asset ID</th>
+                    <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Last Synced</th>
+                    <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in orphaned_items %}
+                <tr style="border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s;" 
+                    onmouseover="this.style.backgroundColor = '#f9fafb';" 
+                    onmouseout="this.style.backgroundColor = '';">
+                    <td style="padding: 0.75rem;">
+                        <code style="background-color: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem;">
+                            {{ item.immich_filename or 'N/A' }}
+                        </code>
+                    </td>
+                    <td style="padding: 0.75rem; font-family: monospace; font-size: 0.875rem; color: #6b7280;">
+                        {{ item.immich_asset_id[:20] }}...
+                    </td>
+                    <td style="padding: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+                        {{ item.last_synced_at.strftime('%Y-%m-%d %H:%M') if item.last_synced_at else 'Never' }}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if item.google_product_url %}
+                            <a href="{{ item.google_product_url }}" target="_blank" 
+                               class="btn btn-secondary" 
+                               style="font-size: 0.875rem; padding: 0.375rem 0.75rem; display: inline-block;">
+                                Open in Google Photos ↗
+                            </a>
+                        {% else %}
+                            <span style="color: #9ca3af; font-size: 0.875rem;">No URL</span>
+                        {% endif %}
+                        <button onclick="markAsDeleted('{{ item.immich_asset_id }}')" 
+                                class="btn" 
+                                style="font-size: 0.875rem; padding: 0.375rem 0.75rem; margin-left: 0.5rem; background-color: #10b981;">
+                            ✓ Mark as Deleted
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background-color: #f3f4f6; border-radius: 4px;">
+            <p style="font-size: 0.875rem; color: #4b5563; margin-bottom: 0.5rem;">
+                <strong>How to delete manually:</strong>
+            </p>
+            <ol style="margin-left: 1.5rem; font-size: 0.875rem; color: #6b7280;">
+                <li>Click "Open in Google Photos" to view the item</li>
+                <li>Delete the item manually from Google Photos</li>
+                <li>Click "Mark as Deleted" to remove it from this list</li>
+            </ol>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: #6b7280;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">✓</div>
+            <p style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">No Orphaned Items</p>
+            <p style="font-size: 0.875rem;">All synced items are in sync with Immich.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div id="result-message"></div>
+
+<script>
+async function markAsDeleted(assetId) {
+    const resultDiv = document.getElementById('result-message');
+    
+    if (!confirm('Have you manually deleted this item from Google Photos?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/sync/items/${assetId}/mark-deleted`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="card" style="background-color: #d1fae5; border-left: 4px solid #10b981;">
+                    <p style="color: #065f46;">✓ Item marked as deleted. Reloading...</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            resultDiv.innerHTML = `
+                <div class="card" style="background-color: #fee2e2; border-left: 4px solid #ef4444;">
+                    <p style="color: #7f1d1d;">✗ Failed to mark item as deleted</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="card" style="background-color: #fee2e2; border-left: 4px solid #ef4444;">
+                <p style="color: #7f1d1d;">✗ Error: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+</script>
+
+{% endblock %}

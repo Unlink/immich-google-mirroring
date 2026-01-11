@@ -8,7 +8,7 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import SyncRun, SyncItem, SyncRunLog, SyncRunAction
+from app.models import SyncRun, SyncItem, SyncRunLog, SyncRunAction, SyncStatus
 from app.utils.config import ConfigManager
 import os
 
@@ -131,4 +131,21 @@ async def sync_logs_page(run_id: int, request: Request, db: AsyncSession = Depen
         "run": run,
         "logs": logs,
         "counts": counts
+    })
+
+
+@router.get("/orphaned", response_class=HTMLResponse)
+async def orphaned_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """Orphaned items page - items removed from Immich but still in Google Photos"""
+    # Get all orphaned sync items
+    result = await db.execute(
+        select(SyncItem)
+        .where(SyncItem.status == SyncStatus.ORPHANED)
+        .order_by(desc(SyncItem.last_synced_at))
+    )
+    orphaned_items = result.scalars().all()
+    
+    return templates.TemplateResponse("orphaned.html", {
+        "request": request,
+        "orphaned_items": orphaned_items
     })

@@ -329,34 +329,34 @@ class SyncEngine:
             
             self.log(f"Found {len(orphaned_items)} orphaned asset(s) to delete")
             
-            # Delete orphaned items from Google Photos
+            # Delete orphaned items from Google Photos album
             google_ids_to_delete = [item["google_id"] for item in orphaned_items]
             
-            self.log(f"Deleting {len(google_ids_to_delete)} orphaned asset(s) from Google Photos...")
+            self.log(f"Removing {len(google_ids_to_delete)} orphaned asset(s) from Google Photos album...")
             
             result = await self.google_client.delete_media_items(
                 google_ids_to_delete,
                 self.config.google_album_id
             )
             
-            self.log(f"Deleted {result['deleted']} asset(s), {result['failed']} failed")
+            self.log(f"Removed {result['deleted']} asset(s) from album, {result['failed']} failed")
             
             if result["errors"]:
                 for error in result["errors"][:10]:  # Log first 10 errors
-                    self.log(f"Deletion error: {error}", "WARNING")
+                    self.log(f"Removal error: {error}", "WARNING")
             
             # Update sync items in database
             for orphan in orphaned_items:
                 sync_item = orphan["sync_item"]
-                
-                # Check if deletion was successful for this item
                 google_id = orphan["google_id"]
-                was_deleted = google_id not in [
+                
+                # Check if removal was successful
+                was_removed = google_id not in [
                     err.split(":")[0].replace("Item ", "").strip() 
                     for err in result.get("errors", [])
                 ]
                 
-                if was_deleted:
+                if was_removed:
                     # Log deleted action
                     log_entry = SyncRunLog(
                         sync_run_id=self.run_id,
@@ -373,7 +373,7 @@ class SyncEngine:
                 else:
                     # Mark as orphaned but keep the record
                     sync_item.status = SyncStatus.ORPHANED
-                    sync_item.error = "Failed to delete from Google Photos"
+                    sync_item.error = "Failed to remove from Google Photos album"
             
             await self.db.commit()
             
