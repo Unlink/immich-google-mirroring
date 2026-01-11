@@ -17,6 +17,27 @@ Dockerized Python FastAPI application that synchronizes Immich albums to Google 
 - 🚫 **Deduplication**: Smart fingerprint-based deduplication (checksum + timestamp)
 - 📝 **Sync History**: Track all sync runs with detailed statistics and logs
 - 🔑 **OAuth2**: Secure Google Photos authentication with refresh token support
+- 🗑️ **Smart Cleanup**: Automatically removes deleted Immich photos from Google Photos album
+
+## ⚠️ Important Limitations
+
+### Google Photos API Restrictions
+
+**Deletion Behavior:**
+- When you delete a photo from Immich, this app will **remove it from the Google Photos album**
+- However, the photo **remains in your Google Photos library** (not completely deleted)
+- This is a Google Photos API limitation - the API does not support programmatic deletion from library
+- Photos are only removed from the synced album, not from "All Photos" section
+
+**Why this limitation exists:**
+- Google Photos API provides `batchRemoveMediaItems` to remove from albums
+- There is **no API endpoint** to delete photos from the library completely
+- This is a security measure by Google to prevent accidental mass deletion via third-party apps
+
+**Workaround:**
+- Removed photos are tracked on the `/orphaned` page
+- If removal fails, you can manually delete them from Google Photos
+- Photos that are successfully removed from the album won't appear in `/orphaned`
 
 ## 🚀 Quick Start (5 minutes)
 

@@ -4,13 +4,17 @@
 <div class="card">
     <h2>Orphaned Items</h2>
     <p style="color: #6b7280; margin-bottom: 1.5rem;">
-        These items were removed from the Immich album but still exist in Google Photos. 
-        Google Photos API does not support programmatic deletion, so you must delete them manually.
+        These items could not be automatically removed from the Google Photos album. 
+        This typically happens due to API errors, network issues, or permission problems.
+        <br><br>
+        <strong>Note:</strong> Successfully removed items are NOT shown here. The sync automatically removes 
+        photos from the Google Photos album when deleted from Immich (though they remain in your Google Photos library 
+        due to Google Photos API limitations).
     </p>
     
     {% if orphaned_items %}
         <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px;">
-            <strong>⚠️ Action Required:</strong> {{ orphaned_items|length }} item(s) need to be manually deleted from Google Photos.
+            <strong>⚠️ Action Required:</strong> {{ orphaned_items|length }} item(s) failed to be automatically removed and need manual cleanup.
         </div>
         
         <table style="width: 100%; border-collapse: collapse;">
@@ -61,13 +65,16 @@
         
         <div style="margin-top: 1.5rem; padding: 1rem; background-color: #f3f4f6; border-radius: 4px;">
             <p style="font-size: 0.875rem; color: #4b5563; margin-bottom: 0.5rem;">
-                <strong>How to delete manually:</strong>
+                <strong>How to clean up failed removals:</strong>
             </p>
             <ol style="margin-left: 1.5rem; font-size: 0.875rem; color: #6b7280;">
-                <li>Click "Open in Google Photos" to view the item</li>
-                <li>Delete the item manually from Google Photos</li>
-                <li>Click "Mark as Deleted" to remove it from this list</li>
+                <li>Click "Open in Google Photos" to view the item in the album</li>
+                <li>Manually remove the item from the album (or delete it completely from library)</li>
+                <li>Click "Mark as Deleted" to remove it from this orphaned list</li>
             </ol>
+            <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.75rem; font-style: italic;">
+                💡 Tip: Items successfully removed during sync do not appear here. This page only shows failures.
+            </p>
         </div>
     {% else %}
         <div style="text-align: center; padding: 3rem; color: #6b7280;">
