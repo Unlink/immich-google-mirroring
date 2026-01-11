@@ -67,7 +67,7 @@
                 </thead>
                 <tbody>
                     {% for run in runs %}
-                    <tr>
+                    <tr onclick="viewRunLogs({{ run.id }})" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor = '#f3f4f6';" onmouseout="this.style.backgroundColor = '';">
                         <td>{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'N/A' }}</td>
                         <td>
                             <span class="status-badge 
@@ -231,5 +231,9 @@ loadStatus();
 
 // Auto-refresh status every 10 seconds
 setInterval(loadStatus, 10000);
+
+function viewRunLogs(runId) {
+    window.location.href = `/sync/logs/${runId}`;
+}
 </script>
 {% endblock %}

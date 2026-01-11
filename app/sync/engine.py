@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from io import BytesIO
 
-from app.models import AppConfig, SyncItem, SyncRun, SyncStatus, RunStatus
+from app.models import AppConfig, SyncItem, SyncRun, SyncStatus, RunStatus, SyncRunLog, SyncRunAction
 from app.clients.immich import ImmichClient
 from app.clients.google import GooglePhotosClient
 from app.utils.config import ConfigManager
@@ -159,6 +159,17 @@ class SyncEngine:
                 if sync_item.immich_checksum == fingerprint and sync_item.status == SyncStatus.OK:
                     self.log(f"Skipping unchanged: {filename}")
                     self.run.skipped += 1
+                    
+                    # Log skipped action
+                    log_entry = SyncRunLog(
+                        sync_run_id=self.run_id,
+                        action=SyncRunAction.SKIPPED,
+                        immich_asset_id=asset_id,
+                        immich_filename=filename,
+                        google_media_item_id=sync_item.google_media_item_id
+                    )
+                    self.db.add(log_entry)
+                    
                     return True
             
             # Download from Immich
@@ -208,11 +219,32 @@ class SyncEngine:
             
             await self.db.commit()
             
+            # Log uploaded action
+            log_entry = SyncRunLog(
+                sync_run_id=self.run_id,
+                action=SyncRunAction.UPLOADED,
+                immich_asset_id=asset_id,
+                immich_filename=filename,
+                google_media_item_id=media_item_id
+            )
+            self.db.add(log_entry)
+            await self.db.commit()
+            
             self.run.uploaded += 1
             return True
             
         except Exception as e:
             self.log(f"Failed to sync {filename}: {e}", "ERROR")
+            
+            # Log failed action
+            log_entry = SyncRunLog(
+                sync_run_id=self.run_id,
+                action=SyncRunAction.FAILED,
+                immich_asset_id=asset_id,
+                immich_filename=filename,
+                error_message=str(e)
+            )
+            self.db.add(log_entry)
             
             # Update sync item with error
             if not sync_item:
@@ -325,6 +357,16 @@ class SyncEngine:
                 ]
                 
                 if was_deleted:
+                    # Log deleted action
+                    log_entry = SyncRunLog(
+                        sync_run_id=self.run_id,
+                        action=SyncRunAction.DELETED,
+                        immich_asset_id=sync_item.immich_asset_id,
+                        immich_filename=orphan["filename"],
+                        google_media_item_id=google_id
+                    )
+                    self.db.add(log_entry)
+                    
                     # Remove the sync item from database
                     await self.db.delete(sync_item)
                     self.run.deleted += 1

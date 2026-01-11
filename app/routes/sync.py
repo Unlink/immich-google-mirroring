@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.database import get_db
-from app.models import SyncRun, SyncItem, RunStatus
+from app.models import SyncRun, SyncItem, SyncRunLog, RunStatus
 from app.sync.engine import create_and_run_sync, request_cancel
 from app.utils.config import ConfigManager
 
@@ -211,4 +211,43 @@ async def get_sync_items(
             "error": item.error
         }
         for item in items
+    ]
+
+
+@router.get("/runs/{run_id}/logs")
+async def get_sync_run_logs(
+    run_id: int,
+    limit: int = 1000,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get detailed logs for a specific sync run"""
+    # Verify run exists
+    result = await db.execute(
+        select(SyncRun).where(SyncRun.id == run_id)
+    )
+    run = result.scalar_one_or_none()
+    
+    if not run:
+        raise HTTPException(status_code=404, detail="Sync run not found")
+    
+    # Get logs for this run
+    result = await db.execute(
+        select(SyncRunLog)
+        .where(SyncRunLog.sync_run_id == run_id)
+        .order_by(SyncRunLog.timestamp)
+        .limit(limit)
+    )
+    logs = result.scalars().all()
+    
+    return [
+        {
+            "id": log.id,
+            "action": log.action.value,
+            "immich_asset_id": log.immich_asset_id,
+            "immich_filename": log.immich_filename,
+            "google_media_item_id": log.google_media_item_id,
+            "error_message": log.error_message,
+            "timestamp": log.timestamp.isoformat() if log.timestamp else None
+        }
+        for log in logs
     ]

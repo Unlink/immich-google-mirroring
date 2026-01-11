@@ -1,14 +1,14 @@
 """
 Web UI routes (server-rendered pages)
 """
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import SyncRun, SyncItem
+from app.models import SyncRun, SyncItem, SyncRunLog, SyncRunAction
 from app.utils.config import ConfigManager
 import os
 
@@ -95,4 +95,40 @@ async def sync_page(request: Request, db: AsyncSession = Depends(get_db)):
         "request": request,
         "config": config,
         "runs": runs
+    })
+
+
+@router.get("/sync/logs/{run_id}", response_class=HTMLResponse)
+async def sync_logs_page(run_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Sync run details and logs page"""
+    # Get the sync run
+    result = await db.execute(
+        select(SyncRun).where(SyncRun.id == run_id)
+    )
+    run = result.scalar_one_or_none()
+    
+    if not run:
+        raise HTTPException(status_code=404, detail="Sync run not found")
+    
+    # Get logs for this run
+    logs_result = await db.execute(
+        select(SyncRunLog)
+        .where(SyncRunLog.sync_run_id == run_id)
+        .order_by(SyncRunLog.timestamp)
+    )
+    logs = logs_result.scalars().all()
+    
+    # Count logs by action
+    counts = {
+        'uploaded': sum(1 for log in logs if log.action == SyncRunAction.UPLOADED),
+        'deleted': sum(1 for log in logs if log.action == SyncRunAction.DELETED),
+        'skipped': sum(1 for log in logs if log.action == SyncRunAction.SKIPPED),
+        'failed': sum(1 for log in logs if log.action == SyncRunAction.FAILED),
+    }
+    
+    return templates.TemplateResponse("sync_logs.html", {
+        "request": request,
+        "run": run,
+        "logs": logs,
+        "counts": counts
     })

@@ -77,3 +77,26 @@ class SyncRun(Base):
     deleted = Column(Integer, default=0)
     log_excerpt = Column(Text)
     log_path = Column(String(500))
+
+
+class SyncRunAction(str, enum.Enum):
+    """Type of action in sync run"""
+    UPLOADED = "UPLOADED"
+    DELETED = "DELETED"
+    SKIPPED = "SKIPPED"
+    FAILED = "FAILED"
+
+
+class SyncRunLog(Base):
+    """Detailed log of actions performed in each sync run"""
+    __tablename__ = 'sync_run_logs'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sync_run_id = Column(Integer, index=True)
+    action = Column(Enum(SyncRunAction), index=True)
+    immich_asset_id = Column(String(100))
+    immich_filename = Column(String(500))
+    google_media_item_id = Column(String(200))
+    error_message = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)

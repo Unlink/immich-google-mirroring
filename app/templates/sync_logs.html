@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h2>Sync Run #{{ run.id }} Details</h2>
+            <p style="color: #6b7280; margin: 0;">
+                Started: {{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'N/A' }}
+                {% if run.finished_at %}
+                    | Finished: {{ run.finished_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                {% endif %}
+            </p>
+        </div>
+        <a href="/sync" class="btn btn-secondary">← Back to Sync</a>
+    </div>
+    
+    <div class="stats" style="margin-bottom: 2rem;">
+        <div class="stat-card">
+            <h3>Status</h3>
+            <p>
+                <span class="status-badge 
+                    {% if run.status.value == 'OK' %}status-success
+                    {% elif run.status.value == 'RUNNING' %}status-info
+                    {% else %}status-error{% endif %}">
+                    {{ run.status.value }}
+                </span>
+            </p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Assets</h3>
+            <p>{{ run.total_assets }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Uploaded</h3>
+            <p style="color: #10b981; font-weight: bold;">{{ run.uploaded }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Skipped</h3>
+            <p style="color: #3b82f6; font-weight: bold;">{{ run.skipped }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Failed</h3>
+            <p style="color: #ef4444; font-weight: bold;">{{ run.failed }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Deleted</h3>
+            <p style="color: #f59e0b; font-weight: bold;">{{ run.deleted }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Activity Log</h2>
+    
+    <div style="margin-bottom: 1rem;">
+        <label style="margin-right: 1rem;">
+            <input type="checkbox" id="filter-uploaded" checked onchange="filterLogs()">
+            Uploaded ({{ counts.uploaded }})
+        </label>
+        <label style="margin-right: 1rem;">
+            <input type="checkbox" id="filter-deleted" checked onchange="filterLogs()">
+            Deleted ({{ counts.deleted }})
+        </label>
+        <label style="margin-right: 1rem;">
+            <input type="checkbox" id="filter-skipped" checked onchange="filterLogs()">
+            Skipped ({{ counts.skipped }})
+        </label>
+        <label>
+            <input type="checkbox" id="filter-failed" checked onchange="filterLogs()">
+            Failed ({{ counts.failed }})
+        </label>
+    </div>
+    
+    <div id="logs-container">
+        {% if logs %}
+            <table id="logs-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                        <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Action</th>
+                        <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Filename</th>
+                        <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Details</th>
+                        <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="log-row" data-action="{{ log.action }}" style="border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s;">
+                        <td style="padding: 0.75rem;">
+                            {% if log.action == 'UPLOADED' %}
+                                <span style="display: inline-block; padding: 0.25rem 0.75rem; background-color: #d1fae5; color: #065f46; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500;">↑ Uploaded</span>
+                            {% elif log.action == 'DELETED' %}
+                                <span style="display: inline-block; padding: 0.25rem 0.75rem; background-color: #fef3c7; color: #92400e; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500;">🗑 Deleted</span>
+                            {% elif log.action == 'SKIPPED' %}
+                                <span style="display: inline-block; padding: 0.25rem 0.75rem; background-color: #dbeafe; color: #0c4a6e; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500;">→ Skipped</span>
+                            {% elif log.action == 'FAILED' %}
+                                <span style="display: inline-block; padding: 0.25rem 0.75rem; background-color: #fee2e2; color: #7f1d1d; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500;">✗ Failed</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; word-break: break-word;">
+                            <code style="background-color: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem;">{{ log.immich_filename or 'N/A' }}</code>
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.875rem;">
+                            {% if log.error_message %}
+                                <span style="color: #ef4444;">{{ log.error_message }}</span>
+                            {% elif log.google_media_item_id %}
+                                <span style="color: #6b7280; font-family: monospace;">{{ log.google_media_item_id[:20] }}...</span>
+                            {% else %}
+                                <span style="color: #9ca3af;">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; white-space: nowrap; color: #6b7280; font-size: 0.875rem;">
+                            {{ log.timestamp.strftime('%H:%M:%S') if log.timestamp else 'N/A' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="color: #6b7280; text-align: center; padding: 2rem;">No logs available for this sync run.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function filterLogs() {
+    const showUploaded = document.getElementById('filter-uploaded').checked;
+    const showDeleted = document.getElementById('filter-deleted').checked;
+    const showSkipped = document.getElementById('filter-skipped').checked;
+    const showFailed = document.getElementById('filter-failed').checked;
+    
+    const rows = document.querySelectorAll('.log-row');
+    rows.forEach(row => {
+        const action = row.getAttribute('data-action');
+        let show = false;
+        
+        if (action === 'UPLOADED' && showUploaded) show = true;
+        if (action === 'DELETED' && showDeleted) show = true;
+        if (action === 'SKIPPED' && showSkipped) show = true;
+        if (action === 'FAILED' && showFailed) show = true;
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+// Add hover effect to table rows
+document.querySelectorAll('.log-row').forEach(row => {
+    row.addEventListener('mouseover', function() {
+        this.style.backgroundColor = '#f9fafb';
+    });
+    row.addEventListener('mouseout', function() {
+        this.style.backgroundColor = '';
+    });
+});
+</script>
+
+{% endblock %}
