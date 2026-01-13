@@ -10,11 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Fixed
-- Fixed autosync not starting when enabled - scheduler is now properly updated when sync settings are changed
 
 ### Changed
 
 ### Removed
+
+## [1.0.2] - 2026-01-13
+- Fixed autosync not starting when enabled - scheduler is now properly updated when sync settings are changed
 
 ## [1.0.1] - 2026-01-11
 
