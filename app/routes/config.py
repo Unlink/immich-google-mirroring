@@ -9,6 +9,7 @@ from typing import Optional
 from app.database import get_db
 from app.utils.config import ConfigManager
 from app.clients.immich import ImmichClient
+from app.scheduler import update_scheduler
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -87,6 +88,9 @@ async def update_sync_settings(
         request.enabled,
         request.interval_minutes
     )
+    
+    # Update scheduler to reflect the new settings
+    await update_scheduler()
     
     return {
         "success": True,
